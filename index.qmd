@@ -1,0 +1,334 @@
+---
+title: "Models of protein sequence"
+subtitle: "Alex Lee, 2023-10-17"
+width: 1920
+height: 1080
+margin: 0.05
+padding: 0.05
+max-scale: 1.5
+format:
+    revealjs:
+        chalkboard:
+            buttons: true
+        preview-links: auto
+        theme: css/sandstone.scss
+        css: css/tailwind.min.css
+        logo: assets/ucsf.png
+        navigation-mode: vertical
+---
+
+# The amount of sequencing data is growing (extremely) quickly
+NVIDIA estimates 40 exabytes of data by 2025!--driven by decreases in cost.
+
+![](https://www.genome.gov/sites/default/files/inline-images/2022_Sequencing_cost_per_Human_Genome.jpg){fig-align="center" style="width: 80%"}
+
+# Observational genomic studies of "natural experiments" in human population extremely useful
+
+Ex: discovery of PCSK9 as being protective against heart disease, ApoE from familial studies.  
+
+<br>
+
+::: {.fragment}
+ 
+However: genome is big (~3 billion base pairs) and the space of possible mutations is large. 
+
+:::
+
+<br>
+
+::: {.fragment}
+
+What if we could use computational sequence models to help us decipher the effect of mutations?
+
+:::
+
+# Models of protein sequence are a natural area to study 
+
+:::{.incremental}
+* We know much more about proteins and their function than we do regulatory DNA 
+* Proteins suggest a natural target (for therapeutics) [ie, many proteins (not all) are "druggable"]
+* Quite a lot of protein mutation data out there in databases, such as ClinVar, gnomAD (Genome Aggregation Database), UK BioBank etc.
+:::
+
+# Protein sequence models have typically focused on simple probabilistic models of amino acid frequency
+
+The mainstay tool of these analyses has been a multiple-sequence alignment. 
+
+::: {.r-stack}
+
+::: {.fragment fragment-index=5 .fade-out}
+
+::: {.fragment .fade-in fragment-index=1}
+* collect sequences corresponding to a protein (across species, individuals, etc.)
+:::
+
+::: {.fragment .fade-in fragment-index=2}
+* align them using computational approaches (ex DP w/ Needleman-Wunsch etc.)
+:::
+
+:::
+
+::: {.fragment}
+
+::: {style="justify-content: center; display: flex;"}
+![](https://upload.wikimedia.org/wikipedia/commons/b/b5/Histone_Alignment.png){style="height: auto; width: 110%; max-width: 110%"}
+:::
+
+Conservative/non-conservative terminology refers to (broad sense) notions of similarity across species or between individuals [ie T/S conservative site largely the same across species]
+:::
+
+:::
+
+::: {.footer}
+Figure 1 from Reva et al. (2007, Genome Biology)
+:::
+
+# What do mutation sites indicate?
+
+::: {.columns}
+::: {.column}
+
+![](assets/reva_fig3.jpg){style="height: auto; width: 100%"}
+
+::: {.r-stack}
+::: {.fragment .fade-out style="font-size: 80%"}
+Each ball is an amino acid (AA); AAs colored in orange/purple are the ones in the sequence alignment denoted by different colors; hashes are sites that have high entropy, and are likely to be functionally relevant.  
+:::
+::: {.fragment .fade-in-then-out style="font-size: 80%"}
+Early models (like in this paper, from 2007) focused on creating probabilistic models of specific sites based on entropy ($\sum_i p_i\ \mathrm{ln}(p_i)$) at a given site (column of alignment matrix) and **clustering sequences** based on their entropy at different sites.
+:::
+
+::: {.fragment .fade-in style="font-size: 80%"}
+A key assumption of this idea is basically the idea that if a residue (individual AA) is commonly observed in the population then it has high "fitness". Any statements made are population level about a given sequence alignment.
+:::
+
+:::
+
+:::
+
+:::{.column}
+
+![](assets/reva_fig2.jpg){style="height: auto; width: 100%"}
+
+:::
+:::
+
+
+::: {.footer}
+Figure 2 from Reva et al. (2007, Genome Biology)
+
+:::
+
+# More sophisticated models and applications to disease
+Marks lab at Harvard pioneers more complex probabilistic models based on stat. mech.
+
+::: {.columns style="font-size: 80%"}
+::: {.column}
+![](assets/hopf_ev_fig1.jpg)
+:::
+
+::: {.column}
+Previous method focuses on marginal probabilities at specific sites $\mathrm{\mathbf{h}_i}(\sigma_i)$ [ie a fixed effect] for a given protein alignment.
+
+<br>
+
+Now we have an overall model of a given sequence $\sigma$:  $P(\sigma)\ =\ \frac{1}{Z} \mathrm{exp}\ E(\sigma)$, where:
+
+$$E(\sigma) = \sum_i \mathbf{h}_i (\sigma_i) + \sum_{i<j} \mathbf{J}_{ij} (\sigma_i, \sigma_j)$$
+
+What's significant about this change is that now we can **score** a given sequence on it's overall likelihood. 
+
+::: 
+:::
+
+::: {.footer}
+Hopf et al., (2017, Nature Biotechnology)
+:::
+
+# EV energy scores correlate well with disease variation annotations and functional measurements
+
+::: {.columns}
+
+::: {.column style="max-width: 500%"}
+::: {.r-stack style="max-width: 500%"}
+::: {.fragment .fade-out style="max-width: 500%"} 
+![](assets/hopf_ev_fig2b.png){style="max-width: 400%; height: auto; width: 120%"}
+:::
+
+::: {.fragment}
+New applications also introduced by sequence-level modeling: 
+
+* deep mutational scanning experiments screen many genetic variants for an observed phenotype (ie does the protein glow more or less than other mutated proteins) 
+* more evidence that probabilistic models are generally useful 
+:::
+
+:::
+:::
+
+
+::: {.column}
+![](assets/hopf_ev_fig2a.png)
+:::
+
+:::
+
+# An update for the machine learning era: EVE
+
+::: {.r-stack}
+
+![](assets/evetitle.png){.fragment .fade-out fig-align="center"}
+
+::: {.columns .fragment style="max-width: 150%"}
+::: {.column style="max-width: 150%"}
+
+::: {.r-stack}
+![](assets//frazer-eve-fig1.webp){style="height: auto; width: 100%; max-width: 150%"  .fragment .fade-in-then-out}
+
+![](assets//frazer-eve-fig2c.png){.fragment .fade-in style="max-width: 100%"}
+:::
+:::
+
+::: {.column}
+
+<br> <br>
+VAE models learn highly accurate ClinVar scores, even with only a couple hundred sequences per protein family. 
+
+<br>
+
+Simple gaussian mixture on top of VAE probabilities gives ~90% correlation, ~99% AUC specific examples like TP53.
+:::
+
+:::
+
+:::
+
+# The state-of-the-art: masked language models
+
+::: {style="display: flex; justify-content: center"}
+![](assets/esmtitle.png){fig-align="center"}
+:::
+
+
+![](assets/brandes-esm-fig1.png)
+
+No sequence alignment needed: (pre-)training is over huge amounts of data--although model is relatively small (MM-15B param)
+
+
+::: {.footer }
+Figure 1a from Brandes et al. (2023, Nature Genetics)
+:::
+
+# Brandes. et al (2023) paper demonstrates even without fine-tuning, ESM performs favorably compared with EVE
+
+A bit unfair given the architectural context, but still clear differences using 650M parameter model:
+
+::: {style="display: flex; justify-content: center; max-height: 100%; flex-direction: column; align-items: center"}
+![](assets/esm_vs_eve.png){style="width: auto; max-height: 130%; height: 130%"}
+:::
+
+Not shown--commensurate increase in prediction of mutational scanning effect datasets. 
+
+::: {.footer}
+Figure 2b from Brandes et al. (2023, Nature Genetics)
+:::
+
+# Embeddings from ESM can be easily fine tuned into highly accurate protein structural predictions
+
+
+::: {style="display: flex; align-items: center; justify-content: center"}
+::: {.r-stack style="width: auto; max-height: 400%; height: 400%;"}
+
+::: {.fragment .fade-out style="max-height: 250%; height: 250%"}
+![](assets/esm-structurepred.png){width=1500 height=1500}
+:::
+
+![](assets/esmfold-fig1.png){.fragment .fade-in-then-out width=5000 height=5000}
+
+![](assets/esmfold-fig1b.png){.fragment .fade-in width=600 height=600}
+:::
+:::
+
+# New applications of protein language models: forward de novo design
+
+:::{style="display: flex; flex-direction: column; justify-content: center; align-items: center"}
+![](assets/progen-title.png)
+
+![](assets/hie-title.png)
+:::
+
+Note: people have been doing de novo design for ~20-30 years now, but it's only in the last ~10 that it's been possible with really extensive automation.
+
+# First paper: Ali Madani's ProGen
+
+<img src="assets/progen-fig1a.png">
+
+Model is autoregressively trained from "control tags" (sort of like <cls>) to generate different sequences. 
+
+# First paper: Ali Madani's ProGen
+
+::: {style="display: flex; justify-content: center; align-items: center; flex-direction: column"}
+
+<img src="assets/progen-fig2d.png" style="width: auto; height: 35rem">
+
+Most importantly, proteins designed using this method can actually be expressed in cells comparably to natural proteins -- a big milestone
+
+:::
+
+# Second paper: Brian Hie's work (no fancy method name)
+
+Targets antibody generation using ESM1b/1v using a sort of simulated annealing-like process.
+
+Basically, select protein candidates as based on probability from some model: for a length $L$ protein given by $\mathbf{x}$, with $i \in [1, 2, ..., L]$
+
+$$
+p(x^{'}_i | \mathbf{x}) > p(x_i | \mathbf{x}) 
+$$
+
+where $x_i$ denotes the wild-type residue (or the "start" residue at a given site $i$) and $x^{'}_i$ is a particular substitution at that site. 
+
+# DL methods are enabling other applications in biology:
+
+<div style="display: flex; flex-direction: row">
+<img src="https://www.biorxiv.org/content/biorxiv/early/2023/04/12/2022.08.22.504706/F1.large.jpg?" style="max-width: 100%;">
+
+<div style="font-size: 80%">
+<p>
+<br> <br>
+DNA Language models emerging (Benzegas et al. (2023), from Song lab at Berkeley): could be used to decode effect of regulatory DNA.
+
+<br>
+Builds on history of sequence modeling to predict transcription (Kelley lab at Calico, Enformer etc.)
+
+<br>
+
+So far, not so many big applications of these technologies for forward design of elements in synthetic biology. Maybe MPRA's?
+</p>
+</div>
+
+</div>
+
+# Diffusion models another frontier of protein modeling
+
+<div style="display: flex; flex-direction: row">  
+
+<video data-autoplay style="height: 110%; width: 70rem" src="https://www.bakerlab.org/wp-content/uploads/2022/11/diffusion_animation_InsulinR_binder.mp4"></video>
+
+<p style="font-size: 80%">
+<br>
+<br>
+First paper from Anand and Achim (2022) and then followed by RFDiffusion from Baker lab at UW (Watson et al., 2023 Nature Biotechnology). Here is a trajectory for a binder designed against insulin receptor (IPD website)
+</p>
+
+</div>
+
+# Conclusions
+
+Protein sequence modeling field has moved quite quickly in last five years.
+
+<br>
+
+Moving from simpler statistical models to more complex models, ultimately to learn energy functions / likelihood scorers. 
+
+<br>
+
+Robust performance on variant scoring tasks--unclear what the field will do now that we have these strong general representation learners. So far analyses focused on protein-protein interaction, general prediction tasks (like stability).

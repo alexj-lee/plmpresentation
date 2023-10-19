@@ -1,0 +1,576 @@
+---
+title: "Models of protein sequence"
+subtitle: "Alex Lee, 2023-10-17"
+width: 1920
+height: 1080
+margin: 0.05
+padding: 0.05
+max-scale: 1.5
+format:
+    revealjs:
+        chalkboard:
+            buttons: true
+        preview-links: auto
+        theme: css/sandstone.scss
+        css: css/tailwind.min.css
+        logo: assets/ucsf.png
+        navigation-mode: vertical
+---
+
+# The amount of sequencing data is growing (extremely) quickly
+Decreases in cost underlie explosion in amount of data. 
+NVIDIA estimates ~40 exabytes of storage for all genomic data by 2025.
+
+
+<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center">
+  <img style="width: 75%; " src="https://www.genome.gov/sites/default/files/inline-images/2022_Sequencing_cost_per_Human_Genome.jpg">
+</div>
+
+
+# New techniques give us a ton of signals -- but which are important?
+
+::: {.columns}
+
+::: {.column width="50%"}
+
+::: {.r-stack}
+
+::: {style="text-align: center" .fragment .fade-in-then-out fragment-index=1} 
+<img src="assets/recordings.png">
+For example, electrode array-techniques like this...
+:::
+
+::: {style="text-align: center" .fragment .fade-in-then-out fragment-index=2}
+![](assets/calcium.png)
+or, optical techniques like whole-brain calcium imaging.
+:::
+
+::: {style="text-align: center" .fragment fragment-index=6}
+<img src="assets/ca-movement.png">
+Intuitively, we want to remove as much signal as possible that is related to movement alone, and isolate the "cognitive" portion. 
+:::
+
+:::
+
+:::
+
+::: {.column width="50%"} 
+<span class="fragment fade-in" data-fragment-index=3>These techniques have enabled us to discover two things:</span>
+
+<div class="r-stack">
+
+<div class="fragment fade-in-then-out" data-fragment-index=4>
+<img src="assets/ca-movement.png">
+1. neural activity we suspect to be "cognitive" is subtle, distributed, and dwarfed by second-order effects
+</div>
+
+<div class="fragment fade-in" data-fragment-index=5>
+<img src="assets/popdynam.png">
+2. But, dim. reduction reveals low-rank dynamics of population activity
+</div>
+
+</div>
+
+:::
+
+:::
+
+<div style="display: block;
+position: fixed;
+bottom: -180px;
+width: 100%;
+margin: 0 auto;
+text-align: center;
+font-size: 28px;
+z-index: 2;">
+
+<div class="r-stack">
+<div class="fragment fade-in-then-out" data-fragment-index=1>
+Figure 1 (a) from [Urai et al. (2012)](https://www.nature.com/articles/s41593-021-00980-9)
+</div>
+
+<div class="fragment fade-in-then-out" data-fragment-index=2>
+Figure 1 (a) from [Ren and Komiyama (2021)](https://www.jneurosci.org/content/41/19/4160)
+</div>
+
+<div class="fragment fade-in" data-fragment-index=4>
+Figure 1 (b, c) from [Urai et al. (2012)](https://www.nature.com/articles/s41593-021-00980-9)
+</div>
+
+</div>
+
+# What does this look like computationally? 
+
+<h3> The end goal: a reliable nonlinear ICA-like tool--but first, a review of linear ICA </h3>
+
+::: {.columns}
+
+::: {style="text-align: center;" .column width="50%"}
+
+<div class="r-stack">
+
+<div class="fragment fade-in-then-semi-out" data-fragment-index="1">
+<br>
+<img src="assets/ica1.png">
+<span style="font-size: 2.3rem;">The idea is we have a true signal (black) that we want to discover the subcomponents of (<span style="color: red;">red</span>, <span style="color: #4682B4;">blue</span>, and <span style="color: #FF8000;">orange</span>).
+</div>
+
+<div class="fragment fade-in-then-out" data-fragment-index="3" style="font-size: 2.3rem; background-color: white;">
+<br> <br>
+It turns out that the difference comes in the fitting of the components:
+<ul>
+<li>PCA assumes low-dimensional components should be orthogonal: $c_i^Tc_j = 0\ \mathrm{for\  all}\ (i, j)$</li>
+<li>ICA assumes components should be independent: $f(c_1, c_2) = f(c_1)f(c_2)$</li>
+</ul>
+<br> <br> <br>
+</div>
+
+<div class="fragment fade-in-then-out" data-fragment-index="5" style="font-size: 2.3rem; background-color: white">
+<br>
+<ul>
+<li>In the case that the system dynamics are linear and: </li>
+<ul>
+<li>you select more than or equal to the number of components that exist</li>
+<li>data matrix $\mathbf{X}$ is full rank</li>
+<li>components are non-Gaussian</li>
+</ul>
+</ul>
+There are (some\*) theoretical guarantees that you will get the "true" components back
+<span style="font-size: 1rem"><br> \*depends on noise </span>
+
+<br>
+This is referred to as **identifiability** in the ICA literature
+
+</div>
+
+<div class="fragment fade-in-then-out" style="font-size: 2.3rem; background-color: white"> 
+<br> <br>
+Mathematically what we've done is taken our data matrix (here it's just a vector) $\mathbf{x} \in \mathbb{R}^{n \times t}$ 
+decomposed it into three signals that are "$t$-long":
+
+$$(s_1, s_2, s_3)$$
+
+From which we can reconstruct our data by multiplying it by some coefficients $(a_1, a_2, a_3)$
+<br> <br>
+So in the end our model is something like: $\mathbf{X} = \mathbf{A}\mathbf{S}$
+
+</div>
+
+</div>
+
+:::
+
+:::{style="text-align: center;" .column width="50%" .fragment fragment-index="2"}
+
+<br> <br>
+<img src="assets/ica2.png">
+<span style="font-size: 2.3rem;">Doing this with PCA results in suboptimal identification of the components versus ICA
+
+:::
+
+:::
+
+<div style="display: block;
+position: fixed;
+bottom: -150px;
+width: 100%;
+margin: 0 auto;
+text-align: center;
+font-size: 28px;
+z-index: 2;">
+
+[Comon, 1994](https://www.sciencedirect.com/science/article/pii/0165168494900299), also see [link](http://cis.legacy.ics.tkk.fi/aapo/papers/NCS99web/node14.html) for review from creator of FAST-ICA
+
+</div>
+
+# Why is this insufficient?
+
+<h4>Examples: we know that dynamics of systems (like the brain) are not linearly evolving over time; they are also nonstationary, etc. </h4>
+<h4>So, why don't we do something like: </h4>
+
+<div class="columns">
+
+<div class="column width=50%" style="font-size: 2.3rem">
+<br>
+
+$\mathbf{X} = \mathbf{f}(\mathbf{s}(t))$ -- now, the components themselves can depend on time (stimulus) and the data is a nonlinear function of the components 
+
+<br> 
+The problem with this is that we've now got **no** theoretical guarantees about our ability to identify the correct components-- 
+</div>
+
+<div class="column width=50%" style="font-size: 2.1rem; text-align: center">
+<img src="assets/ica2.png">
+For a sort of high-level explanation, if we have a decoder that's sufficiently expressive/powerful, it doesn't matter what $\mathbf{s}$ is because
+we can project $\mathbf{s}$ to an arbitrary space s.t. it satisfies our learning objective.
+
+</div>
+
+</div>
+
+
+## 
+
+<br>
+<blockquote>
+
+<p>Theorem <a href="https://doi.org/10.1016/S0893-6080(98)00140-3">(Hyvärinen and Pajunen, 1999)</a> Let $\mathbf{z}$ be a d-dimensional random vector of any distribution. Then there exists a transformation $\mathbf{g}: \mathbb{R}^d \rightarrow \mathbb{R}^d$ such that the components of $\mathbf{z}^{\prime} := \mathbf{g}(\mathbf{z})$ are independent, and each component has a standardized Gaussian distribution. In particular, $z_{1}^{\prime}$ equals a monotonic transformation of $z_1$</p>
+</blockquote>
+<div style="font-size: 2.5rem;">
+<p><br> Basically using something like Gram-Schmidt or QR we can always get a new set of variables that are independent and admit Gaussian parameterization. Once we transform it this way, we can take any orthogonal transformation without changing the distribution (something like $\mathbf{z}^{\prime} = \mathbf{g}^{-1}(M\mathbf{g}(\mathbf{z})$). As long as the decoder can invert the transformation in this way, we cannot (reliably) recover the true latents based on looking at the data alone.</p>
+<p><br></p>
+<p>For further see Appendix of <a href="https://arxiv.org/abs/1907.04809">Variational Autoencoders and Nonlinear ICA: A Unifying Framework (Khemakhem, 2020)</a> and <a href="https://arxiv.org/abs/2106.05238">I Don’t need u: identifiable non-linear ICA without side information (Willets 2021)</a>.</p>
+
+# But there is hope! (the hope is [semi-]supervision)
+
+<h3> Basically, we supervise a model (neural network) with time labels </h3>
+
+::: {.columns}
+
+::: {.column width=50% style=""}
+
+<div class="r-stack" style="">
+<div class="fragment fade-in-then-out"><img src="assets/tcl.png" style="display: block; margin: auto; width: 100%; object-fit: contain; height: 45rem" class=""></div>
+<div class="fragment fade-in" style=""><img src="assets/f1a.png" class="fragment" style="display: block; margin: 0 auto; width: 100%; height: 45rem; object-fit: contain"></div>
+</div>
+
+:::
+
+::: {.column width=50% style="font-size: 2.1rem"}
+
+<div class="r-stack">
+<div class="fragment fade-out">
+
+We want to separate a (possibly multidimensional) timeseries into segments/windows, then we can
+
+<ol>
+<li> Use a neural network $\mathbf{z} = h(\mathbf{x})$ to project a segment to low dim ($\mathbf{z}$).</li>
+<li> Use an objective function (like classification, or triplet loss) to project $\mathbf{z}$ onto a subspace relevant for correspondence with $L$.</li>
+<ul>
+<li> CEBRA uses triplet loss: basically "make same-label data close, make different-label data far"</li>
+</ul>
+</ol>
+</div>
+
+<div class="fragment fade-in">
+
+The loss for CEBRA is:
+$\mathop{{\mathbb{E}}}\limits_{\begin{array}{c}{\bf{x}}\sim p({\bf{x}}),\,{{\bf{y}}}_{+}\sim p({\bf{y}}|{\bf{x}})\\ {{\bf{y}}}_{1},\ldots ,{{\bf{y}}}_{n}\sim q({\bf{y}}|{\bf{x}})\end{array}}\,[\,-\psi ({\bf{x}},{{\bf{y}}}_{+})+\log \mathop{\sum }\limits_{i=1}^{n}{e}^{\psi ({\bf{x}},{{\bf{y}}}_{i})}],$
+
+<br>
+where $y_+$ is a sample from a positive class and $y_{-}$ is a sample from a negative class and $\psi$ is a
+similarity metric (ie euclidean, cosine etc, [could be learned]). This is similar to InfoNCE loss.
+</div>
+
+</div>
+
+And this can identify the independent components up to linear transformation--but it's **implicit**. We don't actually explicitly get the components, just their coordinates.
+
+:::
+
+:::
+
+<div style="display: block;
+position: fixed;
+bottom: -20px;
+width: 100%;
+margin: 0 auto;
+text-align: center;
+font-size: 28px;
+z-index: 2;">
+
+[Hyvarinen, 2023](https://arxiv.org/abs/2303.16535)
+
+</div>
+
+## A more granular look at the network and the training loop
+
+<br>
+
+::: {.columns}
+
+::: {.column width=50% style="font-size: 2rem"}
+You have some matrix/tensor of neural recordings, say it's a tensor of $N$ rats with 2 recording sites each (so, 
+something like an tensor of $(N \times 2 \times T$) [and say $T$ is 1000 time points].
+
+We split the $T$ observations into 100 sets of 10 time points, so now we have something like:
+$(N \times \ 100 \times 2 \times (t=10))$. 
+:::
+
+::: {.column width=50% style="font-size: 2rem"}
+Then we have some neural network $f$ that in a single instance (of a batch) takes an index $t_{reference}$ and an offset $\Delta$.
+
+<br>
+
+The training process identifies a random time bin $t_{positive}$ such that $t_{positive} \in (t - \Delta < t < t + \Delta)$ and 
+another random bin $t_{negative} \in (t_1, ..., t_{max})$ (not sure if this is what's true in practice, but is how its defined in supplemental)
+:::
+
+:::
+
+<img src="assets/workflow.png">
+
+# CEBRA is built on self-supervised, nonlinear ICA
+<h3> In concept, labels can come from anywhere: multiple animals, tasks or stimuli, or "nuisance" covariates </h3>
+
+<div style="display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center">
+However, mixed signals on performance metrics:
+
+<img src="assets/f1b.png">
+
+On simulated data, CEBRA performs well (but feels inconclusive, t-SNE and UMAP are not really meant for reconstruction)
+</div>
+
+# How does CEBRA do on real data?
+
+::: {.r-stack}
+
+::: {.fragment .fade-out style="display: flex; flex-direction: column; align-items: center;"}
+Test dataset from Buzsáki lab: rat hippocampus (77 place cells) measured while rats (4) traverse a linear 1.6 meter track.
+
+![](assets/dataset.png){style="width: 100%; height: 40rem"}
+
+:::
+
+::: {.fragment .fade-in style="text-align: center; font-size: 2.3rem"}
+![](assets/methods.png)
+
+Embeddings plotted--also, per-animal correlations between embeddings calculated and arrayed (hypothesis is that better correlation between
+same-animal recordings is good) [also note that the CEBRA methods show 3 dimensions but the data is constrained to 2 by projection onto $S^2$]
+
+<br>
+
+Question: is it necessarily good to have better alignment between animals?
+:::
+
+:::
+
+# CEBRA captures qualitative dynamics of macaque data 
+
+<img src="assets/macaque.png">
+
+:::{.columns}
+
+<div class="column">
+
+<div style="align-items: center; display: flex; justify-content: center; flex-direction: row">
+<div><img src="assets/directions.png"></div>
+<div style="font-size: 2rem">These seem to be measured with pose tracking?</div>
+</div>
+
+</div>
+
+<div class="column" style="font-size: 2rem; text-align: left; ">
+<br>
+
+<div class="r-stack">
+<div class="fragment fade-out" >
+<img src="assets/timeonlymacaque.png">
+Output of CEBRA (no time information / no behavior (positional) data) -- not really sure how to interpret
+</div>
+
+
+<div class="fragment fade-in-then-out">
+<img src="assets/behaviorlabels.png">
+Not sure what this would look like in the red/blue plot, but 
+supervising with behavior labels makes the latent space look like behavioral labels
+
+</div>
+
+<div class="fragment fade-in">
+<img src="assets/nobehaviorlabels.png">
+Seems to create a less "ideal" space when using $(x, y)$ position supervision? 
+</div>
+
+</div>
+
+</div>
+
+:::
+
+# CEBRA-Behavior latent space seems to generally correlate better when supervising with position information 
+<h3> Note that position information seemed to present a less "ideal" latent space visually</h3>
+
+<img src="assets/performance.png" style="width: 100%">
+<span style="font-size: 2.3rem">Results of using kNN regressor (first panel) / classifier (middle panels) on latent space; shows reasonable correspondence. 
+Would have been nice to see something much simpler like PCA as well</span>
+
+# Interpretability and tools for data-driven science
+<h3>Authors emphasize the ability of the model to be used to mediate complexity in analysis</h3>
+
+<div style="display: flex; justify-content: center; align-items:center">
+<img src="assets/hypothesisdriven.png" style="width: 100%; height: 35rem">
+</div>
+
+<span style="font-size: 2.5rem">The idea is basically to look at the loss and geometry of the latent space as function of the provided labels.</span>
+
+# Another perspective: persistent homology of the latent space
+<h3>Basically the idea is to quantify the topological structure of latent space</h3>
+
+::: {.columns}
+
+::: {.column}
+
+<div class="r-stack">
+<div class="fragment fade-out"><img src="assets/tda.png" style="height: 100%; width: 60rem"></div>
+<div class="fragment fade-in"><img src="assets/betti.png" style="height: 100%; width: 40rem"></div>
+</div>
+
+:::
+
+::: {.column style="font-size: 2.3rem"}
+The idea is to put a ball of radius $r$ around each data point and slowly grow $r$ and to count the number of holes:
+
+<br>
+Then, you can also quantify the overall connectivity for specific structures (ie a 2-sphere is (1,0,1)) and a uniform sphere is (1,1,0) 
+<br> <br>
+[$H_0$ is the number of connected components, $H_1$ is the number of 1d "holes" $H_2$ is the number of 2d "holes"]
+<br> <br>
+Not sure if there is a mistake here in the numbers? (1,0,1) should be correct for a 2-sphere but is here given for the shuffled numbers
+
+:::
+
+:::
+
+::: {.footer}
+See [Gardner et al. (2022)](https://www.nature.com/articles/s41586-021-04268-7) for more information about TDA in low-dim. representations of neural data
+:::
+
+# Taking advantage of the flexibiltiy of contrastive learning using DINO
+
+<span style="font-size: 2.3rem">Basically in the previous iterates of the model implementation, users had to specify how "similar" the time windows are.
+But, what if you could use *another* neural network to quantify those effects?</span>
+
+::: {.columns}
+::: {.column}
+<div>
+<img src="assets/dino.png" style="width: 100%; height: 45rem; object-fit: contain">
+</div>
+:::
+
+::: {.column style="font-size: 2.3rem"}
+<br>
+Dataset: neuropixels and 2P imaging from Allen Brain Observatory of mice watching videos repeatedly.
+<br> <br>
+Workflow:
+<ul>
+<li> Use DINO-ViT (pretrained vision model) to generate features for each image in video</li>
+<li> Sample data in 2P/neuropixels data in proportion to similarity of frames </li>
+</ul>
+
+:::
+:::
+
+# DINO features effective in inducing consistent, accurate embeddings across modality
+
+
+<div class="r-stack">
+<div class="fragment fade-out">
+<span style="font-size: 2.3rem">Performance not quantified (just stated that based on [Berens et al. (2018)](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006157)) that $R^2$ caps out at 0.6.</span>
+
+::: {.columns}
+::: {.column}
+
+<img src="assets/crossmodal.png" style="width: 100%; height: 30rem; object-fit: contain">
+:::
+
+:::{.column}
+<img src="assets/unimodal.png" style="width: 100%; height: 28rem; object-fit: contain">
+:::
+
+:::
+
+<span style="font-size: 2.3rem">Seems to indicate that cross-modal alignment is possible across 2P/neuropixels! <br>
+Question: it seems like implicitly there is the idea that information that is "modality unique" is not useful--is that always the case?</span>
+
+</div>
+
+<div class="fragment fade-in">
+<div class="columns">
+<div class="column">
+<img src="assets/dinoembed1.png"> </div>
+
+<div class="column"><img src="assets/dinoembed2.png"></div>
+
+Note that for the multimodal case, there are 2 encoders and the loss is supervised over the modality/individual pairs so that the latent spaces "should" be aligned
+</div>
+
+</div>
+
+</div>
+
+# DINO-encoded latent space allows decoding of video frame from latent variables
+
+<div style="display: flex; justify-content: center; align-items:center">
+<img src="assets/dinovideo.png" style="width: 100%; height: 45rem">
+</div>
+
+# DINO-encoded latent space allows for decoding of video frame from latent variables
+
+::: {.columns}
+
+:::{.column}
+<div style="display: flex; justify-content: center; align-items: center; flex-direction: column; font-size: 2.2rem">
+per-frame classification
+<img src="assets/decode1.png"> </div>
+:::
+
+:::{.column}
+
+<div style="display: flex; justify-content: center; align-items: center; font-size: 2.2rem; flex-direction: column">
+per-scene classification + single frame
+<img src="assets/decode2.png">
+</div>
+:::
+
+<div style="text-align: center; font-size: 2.3rem">
+Performance from held-out video (same animal) using kNN or naive Bayes classification
+<br> <br>
+Not sure how to reconcile the high average frame error with the high accuracy overall? 
+<br> <br>
+Note that the (c) counts "success" as frames that are within 1 second of true frame 
+</div>
+
+:::
+
+# Conclusions
+
+CEBRA (and contrastive/self-supervised learning more generally) is a good match for neural dimensionality reduction tasks
+
+::: {.columns}
+
+<br>
+<br>
+
+::: {.column}
+<span style="font-size: 2.3rem">
+Benefits
+<ul>
+<li> Flexibility over modeling tasks, user-inputs </li>
+<li> Intruiging characteristics on DINO-supervised experiment </li>
+<li> Cohomology quantification and latent-space similarity analyses an interesting idea </li>
+<li> Code base good, implements an `sklearn` like framework </li>
+</ul>
+</span>
+
+:::
+
+::: {.column}
+
+<span style="font-size: 2.3rem">
+Caveats
+<ul>
+<li> A lot of ML-based performance characterization a bit circular </li>
+<li> Still (to me) open question how well latent topology qualitative analysis is guiding analysis -- in some cases doesn't PCA allow us to see same structure? </li>
+<li> Some concepts could be better explained: for example, CEBRA-Time vs CEBRA-Behavior never actually defined specifically in the [main] text </li>
+
+</ul>
+</span>
+
+:::
+
+:::
